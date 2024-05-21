@@ -13,21 +13,37 @@
 #include "esp_now.h"
 #include "esp_crc.h"
 
+#include "flame.hpp"
+
 #define ESPNOW_WIFI_MODE WIFI_MODE_STA
 #define ESPNOW_WIFI_IF   ESP_IF_WIFI_STA
 
+extern "C"
+{
+  void app_main(void);
+}
+
 static const char *TAG = "espnow_example";
 
-typedef struct ESP_NOW_test_data
+typedef struct candle_data
 {
-   uint8_t byte1;
-   uint8_t byte2;
-} ESP_NOW_test_data_t;
+   uint8_t command;
+   uint8_t data;
+} candle_data_t;
 
-ESP_NOW_test_data_t ESP_NOW_data;
+candle_data_t received_data;
+
+enum class CANDLE_COMMAND
+{
+	BRIGHTNESS 	= 0x01,
+	ALPHA		= 0x02,
+	RESTART	    = 0x0F,
+};
+
+flame flame1;
 
 /* WiFi should start before using ESPNOW */
-static void example_wifi_init(void)
+static void wifi_init(void)
 {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -42,18 +58,30 @@ static void example_wifi_init(void)
 
 }
 
-static void example_espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len)
+static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len)
 {
-    memcpy(&ESP_NOW_data, data, sizeof(ESP_NOW_data));
-    ESP_LOGI(TAG, "ESP Data recieved: %d | %d", ESP_NOW_data.byte1, ESP_NOW_data.byte2);
+    memcpy(&received_data, data, sizeof(received_data));
+    ESP_LOGI(TAG, "ESP Data recieved: %d | %d", received_data.command, received_data.data);
 }
 
-static esp_err_t example_espnow_init(void)
+static esp_err_t espnow_init(void)
 {
     /* Initialize ESPNOW and register sending and receiving callback function. */
     ESP_ERROR_CHECK( esp_now_init() );
-    ESP_ERROR_CHECK( esp_now_register_recv_cb((esp_now_recv_cb_t)example_espnow_recv_cb) );
+    ESP_ERROR_CHECK( esp_now_register_recv_cb((esp_now_recv_cb_t)espnow_recv_cb) );
     return ESP_OK;
+}
+
+void flicker_task(void *arg)
+{
+  init_led_controller();
+  flame1.setup(LED1_IO, LED1_CH, 20, 100);
+
+  for (;;)
+  {
+    flame1.flicker();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
 }
 
 void app_main(void)
@@ -66,6 +94,8 @@ void app_main(void)
     }
     ESP_ERROR_CHECK( ret );
 
-    example_wifi_init();
-    example_espnow_init();
+    wifi_init();
+    espnow_init();
+
+    xTaskCreate(flicker_task, "flicker_task", 4096, NULL, 2, NULL);
 }
