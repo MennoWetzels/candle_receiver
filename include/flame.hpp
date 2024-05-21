@@ -13,7 +13,7 @@
 #define LEDC_DUTY_RES LEDC_TIMER_8_BIT // Set duty resolution to 8 bits 0-256
 #define LEDC_FREQUENCY (1000)          // Frequency in Hertz. Set frequency at 4 kHz
 
-#define LED1_IO (2) //(32) // Define the output GPIO
+#define LED1_IO (13) // Define the output GPIO
 #define LED1_CH LEDC_CHANNEL_0
 #define LED2_IO (33) // Define the output GPIO
 #define LED2_CH LEDC_CHANNEL_1

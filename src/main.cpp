@@ -62,6 +62,19 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
 {
     memcpy(&received_data, data, sizeof(received_data));
     ESP_LOGI(TAG, "ESP Data recieved: %d | %d", received_data.command, received_data.data);
+
+    switch (received_data.command){
+      case ((uint8_t)CANDLE_COMMAND::BRIGHTNESS):
+      {
+        flame1.adjust_brightness((uint8_t)received_data.data);
+        break;
+      }
+      case ((uint8_t)CANDLE_COMMAND::ALPHA):
+      {
+        flame1.adjust_alpha((uint8_t)received_data.data);
+        break;
+      }
+    }
 }
 
 static esp_err_t espnow_init(void)
